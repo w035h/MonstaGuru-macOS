@@ -8,32 +8,33 @@ The Xcode project references the existing Swift Package Manager structure:
 
 ```
 MonstaGuru-macOS/
-├── Package.swift          # Swift Package Manager manifest
+├── Package.swift                 # Swift Package Manager manifest (swift-tools-version: 6.0)
+├── MonstaGuru.xcodeproj/        # Xcode project for macOS app
 ├── Sources/
-│   ├── App/              # App module (entry point)
-│   │   ├── MonstaGuruApp.swift
-│   │   └── Info.plist
-│   ├── Data/             # Data module (models, repositories)
-│   │   ├── Bank.swift
-│   │   ├── Preset.swift
+│   ├── MonstaGuru/              # Executable target
+│   │   ├── main.swift           # Application entry point
+│   │   └── Resources/           # App assets (Colors.xcassets)
+│   ├── App/                     # App module (SwiftUI entry, state management)
+│   │   └── MonstaGuruApp.swift  # App struct with SwiftData container
+│   ├── Data/                    # Data module (models, repositories)
 │   │   ├── Program.swift
+│   │   ├── Preset.swift
+│   │   ├── Bank.swift
 │   │   └── Repositories/
-│   ├── MIDI/             # MIDI module (CoreMIDI integration)
+│   ├── MIDI/                    # MIDI module (CoreMIDI integration)
 │   │   ├── MIDIManager.swift
 │   │   ├── MIDIUtilities.swift
 │   │   └── SysExParser.swift
-│   └── UI/               # UI module (SwiftUI views)
-│       ├── Clipboard/
-│       ├── Librarian/
+│   └── UI/                      # UI module (SwiftUI views)
 │       ├── ProgramEditor/
+│       ├── Librarian/
+│       ├── Clipboard/
 │       └── Shared/
-├── Resources/
-│   └── Colors.xcassets
 ├── Tests/
 │   ├── UnitTests/
 │   ├── UITests/
 │   └── IntegrationTests/
-└── MonstaGuru.xcodeproj/  # Xcode project
+└── MonstaGuru.xcodeproj/        # Xcode project
     └── project.pbxproj
 ```
 
@@ -80,13 +81,15 @@ The Xcode project includes:
   - Product Bundle Identifier: `com.audiothingies.MonstaGuru`
   - Deployment Target: macOS 14.0 (Sonoma)
   - Info.plist: `Sources/App/Info.plist`
-  - Resources: `Resources/Colors.xcassets`
+  - Resources: `Sources/MonstaGuru/Resources/Colors.xcassets`
 
 - **Build Configurations:**
   - Debug: Full debug symbols, no optimization
   - Release: Optimized, stripped symbols
 
-- **Swift Version:** 5.0
+- **Swift Version:** 6.0 (updated for Xcode 26.4.1)
+
+- **Xcode Compatibility:** Xcode 26.4.1+ (compatibilityVersion updated)
 
 ## Troubleshooting
 
@@ -118,8 +121,31 @@ Each module can be developed and tested independently.
 
 - The Xcode project uses `XCSwiftPackageReference` to reference the local Swift Package
 - All source files are organized in groups matching the directory structure
-- The project is configured for Xcode 14.0+ compatibility
+- The project is configured for Xcode 26.4.1+ compatibility
 - macOS 14.0 (Sonoma) is the minimum deployment target
+- **Important**: For Xcode 26.4.1+, open `MonstaGuru.xcodeproj` directly rather than building through SPM, as SPM has limitations with macOS GUI applications
+
+## Xcode 26.4.1 Compatibility Updates
+
+The following changes were made to support Xcode 26.4.1:
+
+1. **Package.swift**:
+   - Updated `swift-tools-version` from 5.9 to 6.0
+   - Changed product from `.app` to `.executable`
+   - Changed target from `.target` to `.executableTarget`
+   - Added explicit `main.swift` entry point
+
+2. **Project Structure**:
+   - Created `Sources/MonstaGuru/` directory for executable target
+   - Moved `Resources/` to `Sources/MonstaGuru/Resources/`
+   - Removed `@main` attribute from `MonstaGuruApp.swift`
+
+3. **Xcode Project**:
+   - Updated `compatibilityVersion` to "Xcode 26.4.1"
+   - Updated `CreatedOnToolsVersion` to 26.4.1
+   - Updated `LastUpgradeCheck` to 2604
+   - Updated `SWIFT_VERSION` to 5.9
+   - Updated Colors.xcassets path reference
 
 ## Additional Configuration
 

@@ -21,31 +21,35 @@ Fully compliant with **Apple's Human Interface Guidelines (HIG)** for macOS.
 
 ```
 MonstaGuru-macOS/
-├── Package.swift                 # Swift Package Manager manifest
+├── Package.swift                 # Swift Package Manager manifest (swift-tools-version: 6.0)
+├── MonstaGuru.xcodeproj/        # Xcode project for macOS app
 ├── Sources/
-│   ├── App/                      # App entry point, @main
-│   │   ├── MonstaGuruApp.swift   # App struct with SwiftData container
-│   │   └── Info.plist            # App metadata
-│   ├── Data/                     # SwiftData models and repositories
-│   │   ├── Program.swift          # Program data model
-│   │   ├── Preset.swift           # Preset data model
-│   │   ├── Bank.swift             # Bank data model
-│   │   ├── ClipboardEntry.swift   # Clipboard data model
-│   │   ├── MIDISetting.swift      # MIDI configuration model
-│   │   └── Repositories/          # CRUD operations for models
-│   ├── MIDI/                     # CoreMIDI integration
-│   │   ├── MIDIManager.swift      # MIDI input/output handler
-│   │   └── SysExParser.swift      # SysEx message parser/generator
-│   └── UI/                       # SwiftUI views and ViewModels
-│       ├── ProgramEditor/        # Program editor views
-│       ├── Librarian/            # Preset/bank librarian views
-│       ├── Clipboard/            # Clipboard views
-│       └── Shared/               # Shared UI components (DesignSystem)
+│   ├── MonstaGuru/              # Executable target with main entry point
+│   │   ├── main.swift           # Application entry point
+│   │   └── Resources/           # App assets (Colors.xcassets)
+│   ├── App/                     # App module (SwiftUI entry, state management)
+│   │   └── MonstaGuruApp.swift  # App struct with SwiftData container
+│   ├── Data/                    # SwiftData models and repositories
+│   │   ├── Program.swift         # Program data model
+│   │   ├── Preset.swift          # Preset data model
+│   │   ├── Bank.swift            # Bank data model
+│   │   ├── ClipboardEntry.swift  # Clipboard data model
+│   │   ├── MIDISetting.swift     # MIDI configuration model
+│   │   └── Repositories/         # CRUD operations for models
+│   ├── MIDI/                    # CoreMIDI integration
+│   │   ├── MIDIManager.swift     # MIDI input/output handler
+│   │   ├── MIDIUtilities.swift   # Type aliases and utilities
+│   │   └── SysExParser.swift     # SysEx message parser/generator
+│   └── UI/                      # SwiftUI views and ViewModels
+│       ├── ProgramEditor/       # Program editor views and ViewModels
+│       ├── Librarian/           # Preset/bank librarian views and ViewModels
+│       ├── Clipboard/           # Clipboard views and ViewModels
+│       └── Shared/              # Shared UI components (DesignSystem, ContentView)
 ├── Tests/
-│   ├── UnitTests/                # Unit tests for models, repositories, ViewModels
-│   └── UITests/                  # UI tests for SwiftUI views
-├── Resources/                    # App assets (icons, etc.)
-└── README.md                     # This file
+│   ├── UnitTests/               # Unit tests for models, repositories, ViewModels
+│   ├── UITests/                 # UI tests for SwiftUI views
+│   └── IntegrationTests/       # Cross-module integration tests
+└── README.md                    # This file
 ```
 
 ---
@@ -55,8 +59,8 @@ MonstaGuru-macOS/
 | Component       | Version/Requirement                          |
 |-----------------|---------------------------------------------|
 | **macOS**       | 14.0+ (Sonoma)                              |
-| **Swift**       | 5.9+                                        |
-| **Xcode**       | 15.0+                                       |
+| **Swift**       | 6.0+ (updated for Xcode 26.4.1 compatibility) |
+| **Xcode**       | 26.4.1+ (tested and verified)                |
 | **Dependencies**| SwiftUI, Foundation, CoreMIDI, SwiftData   |
 
 ---
@@ -72,8 +76,9 @@ cd MonstaGuru-macOS
 
 ### 2. Open in Xcode
 
+**Recommended**: Open the Xcode project directly for best macOS app support:
 ```bash
-xed .
+open MonstaGuru.xcodeproj
 ```
 
 Or open `Package.swift` directly in Xcode (File > Open > Select `Package.swift`).
@@ -83,6 +88,8 @@ Or open `Package.swift` directly in Xcode (File > Open > Select `Package.swift`)
 - Select the **MonstaGuru** scheme in Xcode.
 - Press **Cmd+R** to build and run.
 - The app requires **macOS 14.0+** (Sonoma).
+
+**Note**: For Xcode 26.4.1+, use the Xcode project file (`MonstaGuru.xcodeproj`) rather than building directly through SPM, as SPM has limitations with macOS GUI applications (Info.plist, asset catalogs, app bundles).
 
 ---
 
