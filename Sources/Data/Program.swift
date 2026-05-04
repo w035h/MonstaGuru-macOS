@@ -8,7 +8,7 @@ import SwiftData
 /// Represents a complete program (patch) for the Audiothingies MicroMonsta 2.
 /// A Program contains all parameters needed to define a sound on the hardware.
 @Model
-public final class Program: Identifiable, Hashable {
+public final class Program: Identifiable, Hashable, Codable {
     /// Unique identifier for the program.
     @Attribute(.unique) public var id: UUID
     
@@ -79,7 +79,59 @@ public final class Program: Identifiable, Hashable {
         self.effects = effects
         self.global = global
     }
-    
+
+    // MARK: - Codable
+
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        self.id = try container.decode(UUID.self, forKey: .id)
+        self.name = try container.decode(String.self, forKey: .name)
+        self.number = try container.decode(Int.self, forKey: .number)
+        self.createdAt = try container.decode(Date.self, forKey: .createdAt)
+        self.updatedAt = try container.decode(Date.self, forKey: .updatedAt)
+        self.oscillators = try container.decode([Oscillator].self, forKey: .oscillators)
+        self.mixer = try container.decode(Mixer.self, forKey: .mixer)
+        self.filters = try container.decode([Filter].self, forKey: .filters)
+        self.envelopes = try container.decode([Envelope].self, forKey: .envelopes)
+        self.lfos = try container.decode([LFO].self, forKey: .lfos)
+        self.matrix = try container.decode([MatrixSlot].self, forKey: .matrix)
+        self.effects = try container.decode(Effects.self, forKey: .effects)
+        self.global = try container.decode(GlobalSettings.self, forKey: .global)
+    }
+
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(name, forKey: .name)
+        try container.encode(number, forKey: .number)
+        try container.encode(createdAt, forKey: .createdAt)
+        try container.encode(updatedAt, forKey: .updatedAt)
+        try container.encode(oscillators, forKey: .oscillators)
+        try container.encode(mixer, forKey: .mixer)
+        try container.encode(filters, forKey: .filters)
+        try container.encode(envelopes, forKey: .envelopes)
+        try container.encode(lfos, forKey: .lfos)
+        try container.encode(matrix, forKey: .matrix)
+        try container.encode(effects, forKey: .effects)
+        try container.encode(global, forKey: .global)
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case number
+        case createdAt
+        case updatedAt
+        case oscillators
+        case mixer
+        case filters
+        case envelopes
+        case lfos
+        case matrix
+        case effects
+        case global
+    }
+
     // MARK: - Computed Properties
     
     /// Returns a formatted string for display (e.g., "01: Init Program").

@@ -99,7 +99,7 @@ public final class ClipboardEntry: Identifiable, Hashable {
     public var sizeDescription: String {
         let sizeInKB = Double(data.count) / 1024.0
         if sizeInKB < 1 {
-            return "\data.count) bytes"
+            return "\(data.count) bytes"
         } else if sizeInKB < 1024 {
             return String(format: "%.1f KB", sizeInKB)
         } else {
