@@ -58,8 +58,18 @@ let package = Package(
         // Data Module (SwiftData Models, Repositories)
         .target(
             name: "Data",
-            dependencies: [],
+            dependencies: [
+                "Utilities"
+            ],
             path: "Sources/Data",
+            exclude: []
+        ),
+        
+        // Utilities Module (Shared Utilities and Extensions)
+        .target(
+            name: "Utilities",
+            dependencies: [],
+            path: "Sources/Utilities",
             exclude: []
         ),
         
@@ -67,7 +77,8 @@ let package = Package(
         .target(
             name: "MIDI",
             dependencies: [
-                "Data"
+                "Data",
+                "Utilities"
             ],
             path: "Sources/MIDI",
             exclude: []

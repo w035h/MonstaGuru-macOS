@@ -963,10 +963,4 @@ public enum SysExError: Error, LocalizedError {
     }
 }
 
-// MARK: - Helper Extensions
 
-private extension Int {
-    func clamped(to range: ClosedRange<Int>) -> Int {
-        return min(max(self, range.lowerBound), range.upperBound)
-    }
-}

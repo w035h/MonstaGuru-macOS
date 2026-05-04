@@ -7,6 +7,20 @@ import CoreMIDI
 import Combine
 import Data
 
+// MARK: - MIDI Constants
+
+/// Constants for MIDI message handling.
+private enum MIDIConstants {
+    /// Maximum SysEx buffer size to prevent memory exhaustion (64KB)
+    static let maxSysExBufferSize = 64 * 1024
+    
+    /// Maximum MIDI packet size for validation
+    static let maxMIDIPacketSize = 1024
+    
+    /// Minimum valid SysEx message size (F0 + manufacturer ID + device ID + type + F7 = 6 bytes)
+    static let minSysExMessageSize = 6
+}
+
 /// Delegate protocol for MIDI events.
 public protocol MIDIManagerDelegate: AnyObject {
     /// Called when a MIDI note on event is received.
@@ -101,6 +115,9 @@ public final class MIDIManager: ObservableObject {
     /// The connected MIDI output destination.
     private var outputDestination: MIDIEndpointRef = 0
     
+    /// Serial dispatch queue for thread-safe access to SysEx state.
+    private let sysExQueue = DispatchQueue(label: "com.monstaguru.sysex", qos: .userInteractive)
+    
     /// Buffer for accumulating SysEx messages.
     private var sysExBuffer: [UInt8] = []
     
@@ -180,8 +197,9 @@ public final class MIDIManager: ObservableObject {
     }
     
     /// Cleans up MIDI resources.
+    /// Uses defer to ensure resources are properly released even if errors occur.
     private func cleanupMIDI() {
-        // Disconnect sources and destinations
+        // Disconnect sources and destinations first
         if inputSource != 0 && inputPort != 0 {
             MIDIPortDisconnectSource(inputPort, inputSource)
             inputSource = 0
@@ -192,21 +210,27 @@ public final class MIDIManager: ObservableObject {
             outputDestination = 0
         }
         
-        // Dispose ports
-        if inputPort != 0 {
-            MIDIPortDispose(inputPort)
-            inputPort = 0
-        }
-        
+        // Dispose ports - use defer to ensure cleanup happens in reverse order of creation
         if outputPort != 0 {
+            defer { outputPort = 0 }
             MIDIPortDispose(outputPort)
-            outputPort = 0
         }
         
-        // Dispose client
+        if inputPort != 0 {
+            defer { inputPort = 0 }
+            MIDIPortDispose(inputPort)
+        }
+        
+        // Dispose client last
         if midiClient != 0 {
+            defer { midiClient = 0 }
             MIDIClientDispose(midiClient)
-            midiClient = 0
+        }
+        
+        // Clear SysEx buffer
+        sysExQueue.sync {
+            sysExBuffer.removeAll()
+            isReceivingSysEx = false
         }
     }
     
@@ -311,13 +335,18 @@ public final class MIDIManager: ObservableObject {
     /// Starts receiving SysEx messages.
     private func startReceivingSysEx() {
         // SysEx reception is handled in the packet list handler
-        isReceivingSysEx = true
+        sysExQueue.sync {
+            isReceivingSysEx = true
+            sysExBuffer.removeAll()
+        }
     }
     
     /// Stops receiving SysEx messages.
     private func stopReceivingSysEx() {
-        isReceivingSysEx = false
-        sysExBuffer.removeAll()
+        sysExQueue.sync {
+            isReceivingSysEx = false
+            sysExBuffer.removeAll()
+        }
     }
     
     // MARK: - MIDI Sending
@@ -522,19 +551,24 @@ public final class MIDIManager: ObservableObject {
     }
     
     /// Handles a single MIDI packet.
+    /// Validates packet size and checks for SysEx messages.
     private func handleMIDIPacket(bytes: [UInt8], timeStamp: MIDITimeStamp) {
+        // Validate packet is not empty
         guard !bytes.isEmpty else { return }
         
-        let status = bytes[0]
-        
-        // Check for SysEx start (F0)
-        if status == MIDIStatus.systemExclusive.rawValue {
-            handleSysExPacket(bytes: bytes)
+        // Validate packet size
+        guard bytes.count <= MIDIConstants.maxMIDIPacketSize else {
+            print("Invalid MIDI packet size: \(bytes.count)")
+            DispatchQueue.main.async {
+                self.delegate?.midiManager(self, didEncounterError: .invalidSysExMessage)
+            }
             return
         }
         
-        // Check for SysEx continuation
-        if isReceivingSysEx {
+        let status = bytes[0]
+        
+        // Check for SysEx start (F0) or continuation
+        if status == MIDIStatus.systemExclusive.rawValue || isReceivingSysEx {
             handleSysExPacket(bytes: bytes)
             return
         }
@@ -542,38 +576,99 @@ public final class MIDIManager: ObservableObject {
         // Handle regular MIDI messages
         if let message = MIDIMessage.fromBytes(bytes) {
             handleMIDIMessage(message, timeStamp: timeStamp)
+        } else {
+            // Invalid MIDI message
+            print("Invalid MIDI message received: \(bytes)")
         }
     }
     
     /// Handles SysEx packet data.
+    /// Uses thread-safe access to sysExBuffer and isReceivingSysEx.
+    /// Validates packet size and prevents buffer overflow.
     private func handleSysExPacket(bytes: [UInt8]) {
         guard isSysExEnabled else { return }
         
-        if bytes.first == MIDIStatus.systemExclusive.rawValue {
-            // Start of SysEx message
-            isReceivingSysEx = true
-            sysExBuffer.removeAll()
+        // Validate packet size
+        guard !bytes.isEmpty, bytes.count <= MIDIConstants.maxMIDIPacketSize else {
+            print("Invalid SysEx packet size: \(bytes.count)")
+            DispatchQueue.main.async {
+                self.delegate?.midiManager(self, didEncounterError: .invalidSysExMessage)
+            }
+            return
         }
         
-        // Append bytes to buffer (excluding F0 if it's the start)
-        if isReceivingSysEx {
+        sysExQueue.sync {
+            // Check for SysEx start (F0)
             if bytes.first == MIDIStatus.systemExclusive.rawValue {
-                sysExBuffer.append(contentsOf: bytes)
-            } else {
-                sysExBuffer.append(contentsOf: bytes)
+                // Start of SysEx message
+                isReceivingSysEx = true
+                sysExBuffer.removeAll()
             }
             
-            // Check for SysEx end (F7)
-            if bytes.last == 0xF7 {
-                isReceivingSysEx = false
-                processSysExMessage(sysExBuffer)
-                sysExBuffer.removeAll()
+            // Append bytes to buffer if we're receiving SysEx
+            if isReceivingSysEx {
+                // Check for buffer overflow before appending
+                let newSize = sysExBuffer.count + bytes.count
+                guard newSize <= MIDIConstants.maxSysExBufferSize else {
+                    print("SysEx buffer overflow detected: \(newSize) > \(MIDIConstants.maxSysExBufferSize)")
+                    // Reset buffer to prevent memory exhaustion
+                    isReceivingSysEx = false
+                    sysExBuffer.removeAll()
+                    DispatchQueue.main.async {
+                        self.delegate?.midiManager(self, didEncounterError: .invalidSysExMessage)
+                    }
+                    return
+                }
+                
+                // Append bytes to buffer
+                sysExBuffer.append(contentsOf: bytes)
+                
+                // Check for SysEx end (F7)
+                if bytes.last == SysExConstants.endByte {
+                    isReceivingSysEx = false
+                    // Process a copy of the buffer to avoid race conditions
+                    let message = sysExBuffer
+                    sysExBuffer.removeAll()
+                    
+                    // Process on a background queue to avoid blocking the MIDI thread
+                    DispatchQueue.global(qos: .userInteractive).async {
+                        self.processSysExMessage(message)
+                    }
+                }
             }
         }
     }
     
     /// Processes a complete SysEx message.
+    /// Validates message structure before parsing.
     private func processSysExMessage(_ message: [UInt8]) {
+        // Validate message is not empty
+        guard !message.isEmpty else {
+            print("Empty SysEx message received")
+            DispatchQueue.main.async {
+                self.delegate?.midiManager(self, didEncounterError: .invalidSysExMessage)
+            }
+            return
+        }
+        
+        // Validate minimum message size
+        guard message.count >= MIDIConstants.minSysExMessageSize else {
+            print("SysEx message too short: \(message.count) bytes")
+            DispatchQueue.main.async {
+                self.delegate?.midiManager(self, didEncounterError: .invalidSysExMessage)
+            }
+            return
+        }
+        
+        // Validate SysEx start and end bytes
+        guard message.first == SysExConstants.startByte, message.last == SysExConstants.endByte else {
+            print("Invalid SysEx message format: missing F0 or F7")
+            DispatchQueue.main.async {
+                self.delegate?.midiManager(self, didEncounterError: .invalidSysExMessage)
+            }
+            return
+        }
+        
         // Notify delegate
         DispatchQueue.main.async {
             self.delegate?.midiManager(self, didReceiveSysEx: message)
@@ -752,10 +847,4 @@ public enum SysExEvent {
     case pingResponse
 }
 
-// MARK: - Helper Extensions
 
-private extension Int {
-    func clamped(to range: ClosedRange<Int>) -> Int {
-        return min(max(self, range.lowerBound), range.upperBound)
-    }
-}
