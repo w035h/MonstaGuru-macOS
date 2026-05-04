@@ -30,9 +30,9 @@ let package = Package(
                 "MIDI",
                 "UI"
             ],
-            path: "Sources/MonstaGuru",
+            exclude: ["App", "Data", "MIDI", "UI"],
             resources: [
-                .process("../Resources")
+                .process("Resources")
             ],
             swiftSettings: [
                 // Enable strict concurrency checking
