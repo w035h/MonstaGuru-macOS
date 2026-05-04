@@ -22,7 +22,7 @@ let package = Package(
     ],
     targets: [
         // Main App Target
-        .target(
+        .executableTarget(
             name: "MonstaGuru",
             dependencies: [
                 "App",
@@ -30,8 +30,9 @@ let package = Package(
                 "MIDI",
                 "UI"
             ],
+            path: "Sources/MonstaGuru",
             resources: [
-                .process("Resources")
+                .process("../Resources")
             ],
             swiftSettings: [
                 // Enable strict concurrency checking
@@ -51,9 +52,7 @@ let package = Package(
             ],
             path: "Sources/App",
             exclude: ["Info.plist"],
-            resources: [
-                .process("Info.plist")
-            ]
+            resources: []
         ),
         
         // Data Module (SwiftData Models, Repositories)

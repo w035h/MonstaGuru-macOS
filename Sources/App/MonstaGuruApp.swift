@@ -8,7 +8,6 @@ import Data
 import MIDI
 import UI
 
-@main
 struct MonstaGuruApp: App {
     
     // Shared ModelContainer for SwiftData
