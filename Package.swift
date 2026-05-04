@@ -32,7 +32,7 @@ let package = Package(
             ],
             path: "Sources/MonstaGuru",
             resources: [
-                .process("../Resources")
+                .process("Resources")
             ],
             swiftSettings: [
                 // Enable strict concurrency checking

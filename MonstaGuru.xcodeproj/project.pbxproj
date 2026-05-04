@@ -111,7 +111,7 @@
 			name = UI;
 			sourceTree = "<group>";
 		};
-		A1000001000000010000000E /* Colors.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Colors.xcassets; path = Resources/Colors.xcassets; sourceRoot = SOURCE_ROOT; };
+		A1000001000000010000000E /* Colors.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Colors.xcassets; path = Sources/MonstaGuru/Resources/Colors.xcassets; sourceRoot = SOURCE_ROOT; };
 		A1000001000000010000000F /* UnitTests */ = {
 			isa = PBXGroup;
 			children = (
