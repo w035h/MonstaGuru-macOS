@@ -1,4 +1,4 @@
-// swift-tools-version:5.9
+// swift-tools-version:6.0
 // MonstaGuru - macOS App for Audiothingies MicroMonsta 2
 // Created by Mistral Vibe Code (Project Architect Agent)
 
@@ -10,7 +10,7 @@ let package = Package(
         .macOS("14.0") // Sonoma+ for SwiftData and modern SwiftUI
     ],
     products: [
-        .app(
+        .executable(
             name: "MonstaGuru",
             targets: ["MonstaGuru"]
         )
