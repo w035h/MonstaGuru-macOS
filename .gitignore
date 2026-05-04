@@ -4,7 +4,6 @@ build/
 DerivedData/
 
 # Xcode
-*.xcodeproj/
 *.xcworkspace/
 *.pbxuser
 *.mode1v3
