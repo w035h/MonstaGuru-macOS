@@ -1,0 +1,273 @@
+name: MonstaGuru CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, vibe/** ]
+  pull_request:
+    branches: [ main, vibe/** ]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Build and Test Job
+  build-and-test:
+    name: Build and Test
+    runs-on: macos-14
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Select Xcode Version
+        run: sudo xcode-select -s /Applications/Xcode_15.3.app/Contents/Developer
+      
+      - name: Install Dependencies
+        run: |
+          # No third-party dependencies for this project
+          echo "No third-party dependencies to install"
+      
+      - name: Build Project
+        run: |
+          xcodebuild \
+            -project MonstaGuru.xcodeproj \
+            -scheme MonstaGuru \
+            -destination 'platform=macOS' \
+            -configuration Debug \
+            clean build
+        env:
+          DEVELOPER_DIR: /Applications/Xcode_15.3.app/Contents/Developer
+      
+      - name: Run Unit Tests
+        run: |
+          xcodebuild \
+            -project MonstaGuru.xcodeproj \
+            -scheme MonstaGuru \
+            -destination 'platform=macOS' \
+            -configuration Debug \
+            test
+        env:
+          DEVELOPER_DIR: /Applications/Xcode_15.3.app/Contents/Developer
+      
+      - name: Run Swift Package Tests
+        run: swift test --parallel
+      
+      - name: Upload Test Results
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: |
+            **/TestResults/
+            **/test-results/
+      
+  # Code Quality Job
+  code-quality:
+    name: Code Quality Checks
+    runs-on: macos-14
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: Run SwiftLint
+        run: |
+          if [ -f .swiftlint.yml ]; then
+            # Install SwiftLint if not available
+            if ! command -v swiftlint &> /dev/null; then
+              brew install swiftlint
+            fi
+            swiftlint lint --config .swiftlint.yml
+          else
+            echo "No SwiftLint configuration found"
+          fi
+      
+      - name: Check Code Formatting
+        run: |
+          # Check for common formatting issues
+          echo "Checking for trailing whitespace..."
+          if grep -r "[[:space:]]$" Sources/ Tests/ --include="*.swift" | grep -v ".git"; then
+            echo "::error::Found trailing whitespace in files"
+            exit 1
+          fi
+          
+          echo "Checking for mixed tabs and spaces..."
+          if grep -r $'\t' Sources/ Tests/ --include="*.swift" | grep -v ".git"; then
+            echo "::warning::Found tabs in files (should use spaces)"
+          fi
+      
+  # Code Coverage Job
+  code-coverage:
+    name: Code Coverage
+    runs-on: macos-14
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Select Xcode Version
+        run: sudo xcode-select -s /Applications/Xcode_15.3.app/Contents/Developer
+      
+      - name: Generate Code Coverage
+        run: |
+          xcodebuild \
+            -project MonstaGuru.xcodeproj \
+            -scheme MonstaGuru \
+            -destination 'platform=macOS' \
+            -configuration Debug \
+            -enableCodeCoverage YES \
+            test
+        env:
+          DEVELOPER_DIR: /Applications/Xcode_15.3.app/Contents/Developer
+      
+      - name: Process Coverage Data
+        run: |
+          # Find and process coverage files
+          find . -name "*.profdata" -exec llvm-cov show -format=lcov {} \; > coverage.lcov
+        continue-on-error: true
+      
+      - name: Upload Coverage to Codecov
+        if: success()
+        uses: codecov/codecov-action@v3
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          file: coverage.lcov
+          flags: unittests
+          name: MonstaGuru-Coverage
+        continue-on-error: true
+      
+      - name: Upload Coverage Artifact
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: code-coverage
+          path: coverage.lcov
+
+  # Release Build Job
+  release-build:
+    name: Release Build
+    runs-on: macos-14
+    needs: [build-and-test, code-quality]
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: Select Xcode Version
+        run: sudo xcode-select -s /Applications/Xcode_15.3.app/Contents/Developer
+      
+      - name: Build Release
+        run: |
+          xcodebuild \
+            -project MonstaGuru.xcodeproj \
+            -scheme MonstaGuru \
+            -destination 'platform=macOS' \
+            -configuration Release \
+            clean build
+        env:
+          DEVELOPER_DIR: /Applications/Xcode_15.3.app/Contents/Developer
+      
+      - name: Create Archive
+        run: |
+          xcodebuild \
+            -project MonstaGuru.xcodeproj \
+            -scheme MonstaGuru \
+            -destination 'platform=macOS' \
+            -configuration Release \
+            archive \
+            -archivePath MonstaGuru.xcarchive \
+            SKIP_INSTALL=NO
+        env:
+          DEVELOPER_DIR: /Applications/Xcode_15.3.app/Contents/Developer
+      
+      - name: Export Archive
+        run: |
+          xcodebuild \
+            -exportArchive \
+            -archivePath MonstaGuru.xcarchive \
+            -exportPath MonstaGuru-Export \
+            -exportOptionsPlist ExportOptions.plist
+        env:
+          DEVELOPER_DIR: /Applications/Xcode_15.3.app/Contents/Developer
+        continue-on-error: true
+      
+      - name: Upload Release Artifact
+        if: success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: MonstaGuru-Release
+          path: MonstaGuru-Export/
+
+  # Documentation Job
+  documentation:
+    name: Generate Documentation
+    runs-on: macos-14
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: Generate Swift Documentation
+        run: |
+          # Install Swift-DocC if needed
+          if ! command -v swift-docc &> /dev/null; then
+            echo "Swift-DocC not available, skipping documentation generation"
+            exit 0
+          fi
+          
+          swift-docc generate \
+            --module MonstaGuru \
+            --output-path docs \
+            --include-extended-types
+      
+      - name: Upload Documentation
+        if: success()
+        uses: actions/upload-artifact@v3
+        with:
+          name: documentation
+          path: docs/
+
+  # Deployment Job (Manual Trigger)
+  deploy:
+    name: Deploy to GitHub Releases
+    runs-on: macos-14
+    needs: [release-build]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+      
+      - name: Download Release Artifact
+        uses: actions/download-artifact@v3
+        with:
+          name: MonstaGuru-Release
+          path: MonstaGuru-Export
+      
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          name: MonstaGuru v${{ github.run_number }}
+          tag_name: v${{ github.run_number }}
+          body: |
+            ## MonstaGuru v${{ github.run_number }}
+            
+            **Release Date:** ${{ github.event.head_commit.timestamp }}
+            **Commit:** ${{ github.sha }}
+            
+            ### Changes
+            - See commit history for details
+            
+            ### Download
+            - [MonstaGuru.app.zip](MonstaGuru-Export/MonstaGuru.app.zip)
+          files: |
+            MonstaGuru-Export/*.app*
+            MonstaGuru-Export/*.dmg*
+            MonstaGuru-Export/*.zip*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
