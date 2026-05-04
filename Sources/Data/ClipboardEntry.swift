@@ -87,6 +87,27 @@ public final class ClipboardEntry: Identifiable, Hashable {
         return name.isEmpty ? type.displayName : name
     }
     
+    /// Returns a formatted date string.
+    public var dateFormatted: String {
+        let formatter = DateFormatter()
+        formatter.dateStyle = .short
+        formatter.timeStyle = .short
+        return formatter.string(from: createdAt)
+    }
+    
+    /// Returns a human-readable size description.
+    public var sizeDescription: String {
+        let sizeInKB = Double(data.count) / 1024.0
+        if sizeInKB < 1 {
+            return "\data.count) bytes"
+        } else if sizeInKB < 1024 {
+            return String(format: "%.1f KB", sizeInKB)
+        } else {
+            let sizeInMB = sizeInKB / 1024.0
+            return String(format: "%.1f MB", sizeInMB)
+        }
+    }
+    
     // MARK: - Hashable Conformance
     
     public static func == (lhs: ClipboardEntry, rhs: ClipboardEntry) -> Bool {
