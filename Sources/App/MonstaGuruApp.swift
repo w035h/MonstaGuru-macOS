@@ -4,6 +4,9 @@
 
 import SwiftUI
 import SwiftData
+import Data
+import MIDI
+import UI
 
 @main
 struct MonstaGuruApp: App {
@@ -22,10 +25,14 @@ struct MonstaGuruApp: App {
         }
     }
     
+    // Shared MIDI Manager
+    @StateObject private var midiManager = MIDIManager()
+    
     var body: some Scene {
         WindowGroup {
             ContentView()
                 .environment(\container)
+                .environmentObject(midiManager)
                 .frame(minWidth: 1024, minHeight: 768) // Minimum window size for macOS
         }
         .windowStyle(.titleBar) // Standard macOS window style
@@ -35,24 +42,7 @@ struct MonstaGuruApp: App {
         Settings {
             SettingsView()
                 .environment(\container)
+                .environmentObject(midiManager)
         }
-    }
-}
-
-// Placeholder for ContentView (will be implemented by UI Agent)
-struct ContentView: View {
-    var body: some View {
-        Text("MonstaGuru")
-            .font(.largeTitle)
-            .padding()
-    }
-}
-
-// Placeholder for SettingsView (will be implemented by UI Agent)
-struct SettingsView: View {
-    var body: some View {
-        Text("Settings")
-            .font(.title)
-            .padding()
     }
 }
