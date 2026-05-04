@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleName</key>
+    <string>MonstaGuru</string>
+    <key>CFBundleDisplayName</key>
+    <string>MonstaGuru</string>
+    <key>CFBundleIdentifier</key>
+    <string>com.audiothingies.MonstaGuru</string>
+    <key>CFBundleVersion</key>
+    <string>1.0.0</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleExecutable</key>
+    <string>MonstaGuru</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>© 2024 Audiothingies</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSRequiresAquaSystemAppearance</key>
+    <false/>
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsArbitraryLoads</key>
+        <false/>
+    </dict>
+    <key>UIUserInterfaceStyle</key>
+    <string>Dark</string>
+</dict>
+</plist>

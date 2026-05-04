@@ -1,0 +1,50 @@
+# Swift Package Manager
+.Package
+build/
+DerivedData/
+
+# Xcode
+*.xcodeproj/
+*.xcworkspace/
+*.pbxuser
+*.mode1v3
+*.mode2v3
+*.perspectivev3
+*.xcuserstate
+
+# macOS
+.DS_Store
+
+# SwiftData
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+
+# IDE
+.idea/
+.vscode/
+
+# Logs
+*.log
+
+# Test Results
+TestResults/
+
+# Local Environment
+.env
+.env.local
+
+# Fastlane (if added later)
+fastlane/
+Gemfile
+Gemfile.lock
+
+# Carthage (if added later)
+Carthage/
+Cartfile
+Cartfile.resolved
+
+# CocoaPods (if added later)
+Pods/
+Podfile
+Podfile.lock
