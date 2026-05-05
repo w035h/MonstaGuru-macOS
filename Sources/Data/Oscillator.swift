@@ -91,7 +91,7 @@ public struct Oscillator: Codable, Hashable, Equatable {
     
     /// Clamps a value to the specified range.
     private func clamped(to range: ClosedRange<Int>) -> Int {
-        return min(max(self.coarsePitch, range.lowerBound), range.upperBound)
+        return Swift.min(Swift.max(self.coarsePitch, range.lowerBound), range.upperBound)
     }
 }
 

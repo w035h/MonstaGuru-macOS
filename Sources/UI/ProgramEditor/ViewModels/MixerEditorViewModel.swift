@@ -115,6 +115,6 @@ public final class MixerEditorViewModel: ObservableObject {
 
 private extension Int {
     func clamped(to range: ClosedRange<Int>) -> Int {
-        return min(max(self, range.lowerBound), range.upperBound)
+        return Swift.min(Swift.max(self, range.lowerBound), range.upperBound)
     }
 }

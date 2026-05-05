@@ -10,6 +10,6 @@ public extension Int {
     /// - Parameter range: The closed range to clamp the value to.
     /// - Returns: The value clamped to the range.
     func clamped(to range: ClosedRange<Int>) -> Int {
-        return min(max(self, range.lowerBound), range.upperBound)
+        return Swift.min(Swift.max(self, range.lowerBound), range.upperBound)
     }
 }
